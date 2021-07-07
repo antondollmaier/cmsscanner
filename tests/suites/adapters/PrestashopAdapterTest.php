@@ -1,9 +1,9 @@
 <?php
 /**
  * @package    CMSScanner
- * @copyright  Copyright (C) 2014 CMS-Garden.org
- * @license    GNU GPLv3 <http://www.gnu.org/licenses/gpl.html>
- * @link       http://www.cms-garden.org
+ * @copyright  Copyright (C) 2014 - 2021 CMS-Garden.org
+ * @license    MIT <https://tldrlegal.com/license/mit-license>
+ * @link       https://www.cms-garden.org
  */
 
 namespace Cmsgarden\Cmsscanner\Tests\Adapters;
@@ -59,7 +59,7 @@ class PrestashopAdapterTest extends \PHPUnit_Framework_TestCase
         }
 
         $this->assertCount(1, $results);
-        $this->assertEquals(15, $falseCount);
+        $this->assertEquals(19, $falseCount);
         $this->assertArrayHasKey('1.6.0.14', $results);
         $this->assertInstanceOf('Cmsgarden\Cmsscanner\Detector\System', current($results));
     }

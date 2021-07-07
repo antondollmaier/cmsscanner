@@ -1,9 +1,9 @@
 <?php
 /**
  * @package    CMSScanner
- * @copyright  Copyright (C) 2014 CMS-Garden.org
- * @license    GNU GPLv3 <http://www.gnu.org/licenses/gpl.html>
- * @link       http://www.cms-garden.org
+ * @copyright  Copyright (C) 2014 - 2021 CMS-Garden.org
+ * @license    MIT <https://tldrlegal.com/license/mit-license>
+ * @link       https://www.cms-garden.org
  */
 
 namespace Cmsgarden\Cmsscanner\Detector\Adapter;
@@ -17,7 +17,6 @@ use Symfony\Component\Finder\SplFileInfo;
  * @package Cmsgarden\Cmsscanner\Detector\Adapter
  *
  * @since   1.0.0
- * @author Anton Dollmaier <ad@aditsystems.de>
  */
 class PrestashopAdapter implements AdapterInterface
 {
@@ -56,13 +55,16 @@ class PrestashopAdapter implements AdapterInterface
     public function detectSystem(SplFileInfo $file)
     {
         $fileName = $file->getFilename();
-        if ($fileName !== "settings.inc.php" ) {
+
+        if ($fileName !== "settings.inc.php") {
             return false;
-	}
-	if (stripos($file->getContents(), '_PS_VERSION_') === false) {
-            return false;
-	}
-	$path = new \SplFileInfo($file->getPathInfo()->getPath());
+        }
+
+        if (stripos($file->getContents(), '_PS_VERSION_') === false) {
+                return false;
+        }
+
+        $path = new \SplFileInfo($file->getPathInfo()->getPath());
 
         // Return result if working
         return new System($this->getName(), $path);
@@ -77,22 +79,35 @@ class PrestashopAdapter implements AdapterInterface
      */
     public function detectVersion(\SplFileInfo $path)
     {
-         foreach ($this->versions as $version) {
-            $sysEnvBuilder = $path->getRealPath() . $version['filename'];
-            if (!file_exists($sysEnvBuilder)) {
+        foreach ($this->versions as $version) {
+            $versionFile = $path->getRealPath() . $version['filename'];
+
+            if (!file_exists($versionFile)) {
                 continue;
             }
-            if (!is_readable($sysEnvBuilder)) {
-                throw new \RuntimeException(sprintf("Unreadable version information file %s", $sysEnvBuilder));
-	    }
-	    if (preg_match($version['regexp'], file_get_contents($sysEnvBuilder), $matches)) {
+
+            if (!is_readable($versionFile)) {
+                continue;
+            }
+
+            if (preg_match($version['regexp'], file_get_contents($versionFile), $matches)) {
                 if (count($matches) > 1) {
                     return $matches[1];
                 }
             }
         }
+
         // this must not happen usually
         return null;
+    }
+
+    /**
+     * @InheritDoc
+     */
+    public function detectModules(\SplFileInfo $path)
+    {
+        // TODO implement this function
+        return false;
     }
 
     /***

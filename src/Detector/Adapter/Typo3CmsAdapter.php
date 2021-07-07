@@ -1,9 +1,9 @@
 <?php
 /**
  * @package    CMSScanner
- * @copyright  Copyright (C) 2014 CMS-Garden.org
- * @license    GNU GPLv3 <http://www.gnu.org/licenses/gpl.html>
- * @link       http://www.cms-garden.org
+ * @copyright  Copyright (C) 2014 - 2021 CMS-Garden.org
+ * @license    MIT <https://tldrlegal.com/license/mit-license>
+ * @link       https://www.cms-garden.org
  */
 
 namespace Cmsgarden\Cmsscanner\Detector\Adapter;
@@ -11,6 +11,7 @@ namespace Cmsgarden\Cmsscanner\Detector\Adapter;
 use Cmsgarden\Cmsscanner\Detector\System;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
+use Cmsgarden\Cmsscanner\Detector\Module;
 
 /**
  * Class Typo3CmsAdapter
@@ -38,7 +39,8 @@ class Typo3CmsAdapter implements AdapterInterface
     );
 
     /**
-     * TYPO3 has a file called LocalConfiguration.php or localconf.php that can be used to search for working installations
+     * TYPO3 has a file called LocalConfiguration.php or localconf.php that can be used
+     * to search for working installations
      *
      * @param   Finder  $finder  finder instance to append the criteria
      *
@@ -82,23 +84,69 @@ class Typo3CmsAdapter implements AdapterInterface
     public function detectVersion(\SplFileInfo $path)
     {
         foreach ($this->versions as $version) {
-            $sysEnvBuilder = $path->getRealPath() . $version['filename'];
-            if (!file_exists($sysEnvBuilder)) {
+            $versionFile = $path->getRealPath() . $version['filename'];
+
+            if (!file_exists($versionFile)) {
                 continue;
             }
-            if (!is_readable($sysEnvBuilder)) {
-                throw new \RuntimeException(sprintf("Unreadable version information file %s", $sysEnvBuilder));
+
+            if (!is_readable($versionFile)) {
+                continue;
             }
-            if (preg_match($version['regexp'], file_get_contents($sysEnvBuilder), $matches)) {
+
+            if (preg_match($version['regexp'], file_get_contents($versionFile), $matches)) {
                 if (count($matches) > 1) {
                     return $matches[1];
                 }
             }
         }
+
         // this must not happen usually
         // if the script comes here your TYPO3 environment is broken somehow
         // e.g. broken typo3_src symlink or the like
         return null;
+    }
+
+    /**
+     * @InheritDoc
+     */
+    public function detectModules(\SplFileInfo $path)
+    {
+        $modules = array();
+        $finder = new Finder();
+
+        $finder->name('ext_emconf.php');
+        foreach ($finder->in($path->getRealPath()) as $config) {
+            preg_match("/\'title\'\s*?\=\>\s*?'([^']+)/", file_get_contents($config->getRealPath()), $titel);
+            preg_match("/\'version\'\s*?\=\>\s*?'([^']+)/", file_get_contents($config->getRealPath()), $version);
+            preg_match("/\'category\'\s*?\=\>\s*?'([^']+)/", file_get_contents($config->getRealPath()), $type);
+
+            if (!count($titel)) {
+                continue;
+            }
+
+            if (!count($version)) {
+                $version[1] = 'unknown';
+            }
+
+            if (!count($type)) {
+                $type[1] = 'unknown';
+            }
+
+            $modules[] = new Module($titel[1], $config->getRealPath(), $version[1], $type[1]);
+        }
+
+        // Remove the Core Extensions form the return array
+        foreach ($modules as $key => $module) {
+            // Remove real path
+            $module->path = str_replace($path->getRealPath(), '', $module->path);
+
+            if (strpos($module->path, '/typo3/sysext') === 0) {
+                unset($modules[$key]);
+            }
+        }
+
+        return array_values($modules);
     }
 
     /***
